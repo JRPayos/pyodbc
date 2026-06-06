@@ -241,37 +241,44 @@ def _test_vartype(cursor: pyodbc.Cursor, datatype):
     else:
         lengths = SMALL_FENCEPOST_SIZES
 
-    if datatype == 'text':
-        cursor.execute(f"create table t1(c1 {datatype})")
-    else:
-        maxlen = lengths[-1]
-        cursor.execute(f"create table t1(c1 {datatype}({maxlen}))")
+    assert cursor.connection.readvar_initsize == 4096
+    for initsize in (None, 1024 * 1024, 0):
+        if initsize is not None:
+            cursor.connection.readvar_initsize = initsize
 
-    for length in lengths:
+        if datatype == 'text':
+            cursor.execute(f"create table t1(c1 {datatype})")
+        else:
+            maxlen = lengths[-1]
+            cursor.execute(f"create table t1(c1 {datatype}({maxlen}))")
 
-        # FreeTDS did not support SQLDescribeParam until version 1.5.16 (see ticket
-        # https://github.com/FreeTDS/freetds/issues/104), so pyodbc had to infer the
-        # SQL type from the Python value. None carries no type information, causing
-        # pyodbc to fall back to SQL_VARCHAR, which SQL Server rejects for binary
-        # columns.
-        if length is None and IS_FREETDS and is_binary and DRIVER_VERSION < (1, 5, 16):
-            continue
+        for length in lengths:
 
-        cursor.execute("delete from t1")
+            # FreeTDS did not support SQLDescribeParam until version 1.5.16 (see ticket
+            # https://github.com/FreeTDS/freetds/issues/104), so pyodbc had to infer the
+            # SQL type from the Python value. None carries no type information, causing
+            # pyodbc to fall back to SQL_VARCHAR, which SQL Server rejects for binary
+            # columns.
+            if length is None and IS_FREETDS and is_binary and DRIVER_VERSION < (1, 5, 16):
+                continue
 
-        value = _generate_str(length, encoding=encoding)
+            cursor.execute("delete from t1")
 
-        try:
-            cursor.execute("insert into t1 values(?)", value)
-        except pyodbc.Error as ex:
-            if value is None:
-                msg = f"{datatype} insert of NULL failed"
-            else:
-                msg = f'{datatype} insert failed: length={length} len={len(value)}'
-            raise Exception(msg) from ex
+            value = _generate_str(length, encoding=encoding)
 
-        v = cursor.execute("select * from t1").fetchone()[0]
-        assert v == value
+            try:
+                cursor.execute("insert into t1 values(?)", value)
+            except pyodbc.Error as ex:
+                if value is None:
+                    msg = f"{datatype} insert of NULL failed"
+                else:
+                    msg = f'{datatype} insert failed: length={length} len={len(value)}'
+                raise Exception(msg) from ex
+
+            v = cursor.execute("select * from t1").fetchone()[0]
+            assert v == value
+
+        cursor.execute("drop table t1")
 
 
 def _test_scalar(cursor: pyodbc.Cursor, datatype, values):

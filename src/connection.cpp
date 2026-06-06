@@ -306,6 +306,7 @@ PyObject* Connection_New(PyObject* pConnectString, bool fAutoCommit, long timeou
     cnxn->maxwrite     = 0;
     cnxn->timeout      = 0;
     cnxn->map_sqltype_to_converter = 0;
+    cnxn->readvar_initsize = 4096;
     cnxn->compat_diagrec_byte_length = false;
 
     cnxn->attrs_before = attrs_before_o.Detach();
@@ -1034,6 +1035,34 @@ static int Connection_setmaxwrite(PyObject* self, PyObject* value, void* closure
     return 0;
 }
 
+static PyObject* Connection_getreadvarinitsize(PyObject* self, void* closure)
+{
+    UNUSED(closure);
+
+    Connection* cnxn = Connection_Validate(self);
+    if (!cnxn)
+        return 0;
+    return PyLong_FromSsize_t(cnxn->readvar_initsize);
+}
+
+static int Connection_setreadvarinitsize(PyObject* self, PyObject* value, void* closure)
+{
+    UNUSED(closure);
+
+    Connection* cnxn = Connection_Validate(self);
+    if (!cnxn)
+        return -1;
+    Py_ssize_t v = PyLong_AsSsize_t(value);
+    if (v == -1 && PyErr_Occurred())
+        return -1;
+    if (v < 0)
+    {
+        PyErr_SetString(PyExc_TypeError, "Cannot set readvar_initsize to a negative value.");
+        return -1;
+    }
+    cnxn->readvar_initsize = v;
+    return 0;
+}
 
 static PyObject* Connection_gettimeout(PyObject* self, void* closure)
 {
@@ -1534,6 +1563,8 @@ static PyGetSetDef Connection_getseters[] = {
     { "timeout", Connection_gettimeout, Connection_settimeout,
       "The timeout in seconds, zero means no timeout.", 0 },
     { "maxwrite", Connection_getmaxwrite, Connection_setmaxwrite, "The maximum bytes to write before using SQLPutData.", 0 },
+    { "readvar_initsize", Connection_getreadvarinitsize, Connection_setreadvarinitsize,
+      "The initial buffer size in bytes for reading values from variable-length columns.", 0 },
     { "fetch_decimal_as_string", Connection_getfetchdecimalasstring, Connection_setfetchdecimalasstring,
       "If True, DECIMAL and NUMERIC values are fetched as strings using the legacy\n"
       "locale-aware path.  If False (the default), values are fetched using a binary\n"
