@@ -1469,6 +1469,19 @@ def test_columns(cursor: pyodbc.Cursor):
         cursor.execute(f"drop table {table_name}")
 
 
+def test_table_privileges(cursor: pyodbc.Cursor):
+    # Confirm exposure of SQLTablePrivileges.  We're limited in what we can test, as
+    # we can't control whether we're running with permission to create users or grant
+    # permissions.  We can at least verify that the method generates a results set
+    # with the right columns.
+    cols = ["table_cat", "table_schem", "table_name", "grantor",
+            "grantee", "privilege", "is_grantable"]
+    cursor.tablePrivileges()
+    names = [col[0] for col in cursor.description]
+    assert len(cols) == len(names), "privileges results set has the wrong shape"
+    assert cols == names, "unexpected column names for privileges results set"
+
+
 @pytest.mark.skipif(IS_FREETDS, reason="FreeTDS Unicode handling for catalog functions is unreliable")
 def test_statistics_unicode():
     # https://github.com/mkleehammer/pyodbc/issues/1457
