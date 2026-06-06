@@ -362,6 +362,17 @@ class Connection:
         ...
 
     @property
+    def fetch_decimal_as_string(self) -> bool:
+        """If True, DECIMAL and NUMERIC values will be fetched as strings using the
+        legacy local-aware path.  If False (the default), values are fetched using a
+        binary representation that is not affected by the locale."""
+        ...
+
+    @fetch_decimal_as_string.setter
+    def fetch_decimal_as_string(self, value: bool) -> None:
+        ...
+
+    @property
     def hdbc(self) -> ctypes.c_void_p | None:
         """ODBC handle for the connection."""
         ...
