@@ -611,6 +611,15 @@ class Cursor:
         ...
 
     @property
+    def rows_as_dicts(self) -> bool:
+        """If True, rows are returned as dicts instead of Row objects."""
+        ...
+
+    @rows_as_dicts.setter
+    def rows_as_dicts(self, value: bool) -> None:
+        ...
+
+    @property
     def hstmt(self) -> ctypes.c_void_p | None:
         """ODBC handle for the statement."""
         ...

@@ -135,6 +135,9 @@ struct Cursor
     // Result Information
     //
 
+    // If true, return rows as dicts instead of Row objects.
+    char rows_as_dicts;
+
     // An array of ColumnInfos, allocated via malloc.  This will be zero when closed or when there are no query
     // results.
     ColumnInfo* colinfos;
